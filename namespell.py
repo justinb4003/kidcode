@@ -2,6 +2,7 @@
 # Copyright Justin Buist
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+import contextlib
 import pango
 import pygtk
 import gtk
@@ -9,9 +10,25 @@ import gobject
 import pyaudio
 import wave
 import threading
+import os
+import sys
 pygtk.require('2.0')
 
+
 TARGET_TEXT = 'HARRIET'
+
+@contextlib.contextmanager
+def ignore_stderr():
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    old_stderr = os.dup(2)
+    sys.stderr.flush()
+    os.dup2(devnull, 2)
+    os.close(devnull)
+    try:
+        yield
+    finally:
+        os.dup2(old_stderr, 2)
+        os.close(old_stderr)
 
 # GTK Ops
 def delete_event(widget, event, data=None):
@@ -21,20 +38,21 @@ def destroy(widget, data=None):
     gtk.main_quit()
 
 def playSound(filename):
-    chunk = 1024
-    f = wave.open(filename, "rb")
-    p = pyaudio.PyAudio()
-    stream = p.open(format = p.get_format_from_width(f.getsampwidth()),
-                    channels = f.getnchannels(),
-                    rate = f.getframerate(),
-                    output = True)
-    data = f.readframes(chunk)
-    while data:
-        stream.write(data)
+    with ignore_stderr():
+        chunk = 1024
+        f = wave.open(filename, "rb")
+        p = pyaudio.PyAudio()
+        stream = p.open(format = p.get_format_from_width(f.getsampwidth()),
+                        channels = f.getnchannels(),
+                        rate = f.getframerate(),
+                        output = True)
         data = f.readframes(chunk)
-    stream.stop_stream()
-    stream.close()
-    p.terminate()
+        while data:
+            stream.write(data)
+            data = f.readframes(chunk)
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
 
 def playFinish():
     playSound('applause.wav')
