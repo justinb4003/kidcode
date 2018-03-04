@@ -55,19 +55,20 @@ def playSound(filename):
         p.terminate()
 
 def playFinish():
-    playSound('applause.wav')
+    t = threading.Thread(target=playSound, args=['applause.wav'])
+    t.start()
 
 def playReset():
-    playSound('boing.wav')
+    t = threading.Thread(target=playSound, args=['boing.wav'])
+    t.start()
 
 def name_onKeyPress(widget):
     inputText = widget.get_text()
     subTarget = TARGET_TEXT[:len(inputText)]
     if (inputText.lower() == subTarget.lower()):
         if (len(inputText) == len(TARGET_TEXT)):
+            playFinish()
             widget.set_text('')
-            t = threading.Thread(target=playFinish)
-            t.start() 
     else:
         playReset()
         widget.set_text('')
