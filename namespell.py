@@ -17,6 +17,8 @@ pygtk.require('2.0')
 
 TARGET_TEXT = 'HARRIET'
 
+# Use in a 'with' block to supress stderr messages for the duration of
+# the block
 @contextlib.contextmanager
 def ignore_stderr():
     devnull = os.open(os.devnull, os.O_WRONLY)
@@ -30,12 +32,6 @@ def ignore_stderr():
         os.dup2(old_stderr, 2)
         os.close(old_stderr)
 
-# GTK Ops
-def delete_event(widget, event, data=None):
-    return False
-
-def destroy(widget, data=None):
-    gtk.main_quit()
 
 def playSound(filename):
     with ignore_stderr():
@@ -62,18 +58,33 @@ def playReset():
     t = threading.Thread(target=playSound, args=['boing.wav'])
     t.start()
 
+# BEGIN GTK Event Ops
+def delete_event(widget, event, data=None):
+    return False
+
+def destroy(widget, data=None):
+    gtk.main_quit()
+
 def name_onKeyPress(widget):
     inputText = widget.get_text()
     subTarget = TARGET_TEXT[:len(inputText)]
     if (inputText.lower() == subTarget.lower()):
         if (len(inputText) == len(TARGET_TEXT)):
+            # The uesr has typed in every character correct. Notify via sound
+            # and then reset the input text widget.
             playFinish()
             widget.set_text('')
     else:
+        # The user has typed a character wrong.  Notify via sound and then
+        # reset the input text widget.
         playReset()
         widget.set_text('')
+
+# END GTK Event Ops
         
 
+# If this isn't called then the main GTK method will get all manner
+# of hosed up if you try and create other threads.
 gobject.threads_init()
 
 window = gtk.Window(gtk.WINDOW_TOPLEVEL)
